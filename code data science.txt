@@ -1,0 +1,44 @@
+# STEP 1: Import libraries
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import io
+from google.colab import files
+
+# STEP 2: Upload your CSV
+uploaded = files.upload()
+filename = list(uploaded.keys())[0]
+df = pd.read_csv(io.BytesIO(uploaded[filename]))
+
+# STEP 3: Data Cleaning
+df.drop_duplicates(inplace=True)
+df.dropna(inplace=True)
+df['date'] = pd.to_datetime(df['date'])
+
+# Remove outliers (IQR method)
+Q1 = df['usage_minutes'].quantile(0.25)
+Q3 = df['usage_minutes'].quantile(0.75)
+IQR = Q3 - Q1
+df = df[(df['usage_minutes'] >= Q1 - 1.5 * IQR) & (df['usage_minutes'] <= Q3 + 1.5 * IQR)]
+
+# STEP 4: Exploratory Data Analysis
+print("Descriptive Statistics:\n", df.describe())
+print("\nGender-wise Average Usage:\n", df.groupby("gender")["usage_minutes"].mean())
+
+# STEP 5: Visualizations
+sns.histplot(df['usage_minutes'], kde=True)
+plt.title("Usage Time Distribution")
+plt.show()
+
+sns.boxplot(x="gender", y="usage_minutes", data=df)
+plt.title("Usage Time by Gender")
+plt.show()
+
+sns.barplot(x="app_name", y="usage_minutes", data=df, estimator='mean')
+plt.title("Average Usage by App")
+plt.xticks(rotation=45)
+plt.show()
+
+sns.heatmap(df.select_dtypes(include='number').corr(), annot=True, cmap="coolwarm")
+plt.title("Feature Correlation Heatmap")
+plt.show()
